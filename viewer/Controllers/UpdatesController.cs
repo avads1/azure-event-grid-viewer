@@ -105,7 +105,7 @@ namespace viewer.Controllers
                 gridEvent.EventType,
                 gridEvent.Subject,
                 gridEvent.EventTime.ToLongTimeString(),
-                (jsonContent.ToString()+ " Method : HandleValidation"));
+                jsonContent.ToString());
 
             // Retrieve the validation code and echo back.
             var validationCode = gridEvent.Data["validationCode"];
@@ -130,7 +130,7 @@ namespace viewer.Controllers
                     details.EventType,
                     details.Subject,
                     details.EventTime.ToLongTimeString(),
-                    (e.ToString() + " Method : HandleGridEvents"));
+                    e.ToString());
             }
 
             return Ok();
@@ -147,7 +147,7 @@ namespace viewer.Controllers
                 details.Type,
                 details.Subject,
                 details.Time,
-                (eventData.ToString() + " Method : HandleCloudEvent")
+                eventData.ToString()
             );
 
             return Ok();
@@ -176,22 +176,22 @@ namespace viewer.Controllers
         }
 
         private static void SendEmail(string jsonData, string callerFunc) {
+
+            var client = new SmtpClient("smtp.gmail.com", 587)
+            {
+                Credentials = new NetworkCredential("nighthawks.ztna@gmail.com", "ztna@123"),
+                EnableSsl = true
+            };
             string body = jsonData;
-
-            MailMessage mail = new MailMessage("webhook-event@myazure.com", "nighthawks.ztna@gmail.com");
-            SmtpClient client = new SmtpClient();
-            client.Port = 25;
+            MailMessage mail = new MailMessage("nighthawks.ztna@gmail.com", "nighthawks.ztna@gmail.com");
             client.DeliveryMethod = SmtpDeliveryMethod.Network;
-            client.UseDefaultCredentials = false;
-            client.Host = "smtp.google.com";
             mail.Subject = "Webhook-event-file "+ callerFunc;
-
             // Set the read file as the body of the message
             mail.Body = body;
-
             // Send the email
             client.Send(mail);
-
+           // client.Send("nighthawks.ztna@gmail.com", "nighthawks.ztna@gmail.com", "test", "testbody");
+            Console.WriteLine("Sent");
         }
 
         #endregion
