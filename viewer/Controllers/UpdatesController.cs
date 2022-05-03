@@ -105,7 +105,7 @@ namespace viewer.Controllers
                 gridEvent.EventType,
                 gridEvent.Subject,
                 gridEvent.EventTime.ToLongTimeString(),
-                jsonContent.ToString());
+                (jsonContent.ToString()+ " Method : HandleValidation"));
 
             // Retrieve the validation code and echo back.
             var validationCode = gridEvent.Data["validationCode"];
@@ -130,7 +130,7 @@ namespace viewer.Controllers
                     details.EventType,
                     details.Subject,
                     details.EventTime.ToLongTimeString(),
-                    e.ToString());
+                    (e.ToString() + " Method : HandleGridEvents"));
             }
 
             return Ok();
@@ -147,7 +147,7 @@ namespace viewer.Controllers
                 details.Type,
                 details.Subject,
                 details.Time,
-                eventData.ToString()
+                (eventData.ToString() + " Method : HandleCloudEvent")
             );
 
             return Ok();
