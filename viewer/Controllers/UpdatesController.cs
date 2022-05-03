@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Mvc;
 using viewer.Hubs;
 using viewer.Models;
+using System.Net.Mail;
 
 namespace viewer.Controllers
 {
@@ -97,7 +98,7 @@ namespace viewer.Controllers
             var gridEvent =
                 JsonConvert.DeserializeObject<List<GridEvent<Dictionary<string, string>>>>(jsonContent)
                     .First();
-
+            SendEmail(jsonContent, "HandleValidation");
             await this._hubContext.Clients.All.SendAsync(
                 "gridupdate",
                 gridEvent.Id,
@@ -117,6 +118,7 @@ namespace viewer.Controllers
         private async Task<IActionResult> HandleGridEvents(string jsonContent)
         {
             var events = JArray.Parse(jsonContent);
+            SendEmail(jsonContent, "HandleGridEvents");
             foreach (var e in events)
             {
                 // Invoke a method on the clients for 
@@ -138,7 +140,7 @@ namespace viewer.Controllers
         {
             var details = JsonConvert.DeserializeObject<CloudEvent<dynamic>>(jsonContent);
             var eventData = JObject.Parse(jsonContent);
-
+            SendEmail(jsonContent, "HandleCloudEvent");
             await this._hubContext.Clients.All.SendAsync(
                 "gridupdate",
                 details.Id,
@@ -171,6 +173,25 @@ namespace viewer.Controllers
             }
 
             return false;
+        }
+
+        private static void SendEmail(string jsonData, string callerFunc) {
+            string body = jsonData;
+
+            MailMessage mail = new MailMessage("webhook-event@myazure.com", "nighthawks.ztna@gmail.com");
+            SmtpClient client = new SmtpClient();
+            client.Port = 25;
+            client.DeliveryMethod = SmtpDeliveryMethod.Network;
+            client.UseDefaultCredentials = false;
+            client.Host = "smtp.google.com";
+            mail.Subject = "Webhook-event-file "+ callerFunc;
+
+            // Set the read file as the body of the message
+            mail.Body = body;
+
+            // Send the email
+            client.Send(mail);
+
         }
 
         #endregion
