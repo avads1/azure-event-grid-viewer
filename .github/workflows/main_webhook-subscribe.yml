@@ -53,5 +53,5 @@ jobs:
         with:
           app-name: 'webhook-subscribe'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_2051171F646141598F6183B749898376 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_23C0BAE1851842C1BBDE441371071AF5 }}
           package: .
