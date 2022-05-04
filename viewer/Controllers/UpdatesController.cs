@@ -184,9 +184,20 @@ namespace viewer.Controllers
                 EnableSsl = true
             };
             var jArrObj = JArray.Parse(jsonData);
+            Dictionary<string, Tuple<string, string>> imageMap = new Dictionary<string, Tuple<string, string>>();
+            imageMap.Add("naas-core", new Tuple<string, string>("TalonImageName", "TalonImageTag"));
+            imageMap.Add("b2e-conftrans", new Tuple<string, string>("B2EImageName", "B2EImageTag"));
+            imageMap.Add("tunnel-server", new Tuple<string, string>("TunnelImageName", "TunnelImageTag"));
+            Tuple<string, string> value;
+            string reqImageName = (string)jArrObj[0]["data"]["target"]["repository"];
+            string reqImageTag = (string)jArrObj[0]["data"]["target"]["tag"];
+            if (!imageMap.TryGetValue(reqImageName, out value))
+            {
+                return;
+            }
             string body = "";
-            body = body + "TalonImageName: " + jArrObj[0]["data"]["target"]["repository"] + "\nTalonImageTag: "+ jArrObj[0]["data"]["target"]["tag"]+"\n";
-            Console.WriteLine(body);
+            body = body + imageMap[reqImageName].Item1 + ": " + reqImageName + "\n"+imageMap[reqImageName].Item2+": " + reqImageTag + "\n";
+            Console.WriteLine("Request body : \n"+body);
             string path = @"versions.yaml";
             if (!System.IO.File.Exists(path))
             {
