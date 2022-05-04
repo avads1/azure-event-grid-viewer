@@ -182,16 +182,48 @@ namespace viewer.Controllers
                 Credentials = new NetworkCredential("nighthawks.ztna@gmail.com", "ztna@123"),
                 EnableSsl = true
             };
-            string body = jsonData;
+            var jArrObj = JArray.Parse(jsonData);
+            string body = "";
+            body = body + "TalonImageName: " + jArrObj[0]["data"]["target"]["repository"] + "\nTalonImageTag: "+ jArrObj[0]["data"]["target"]["tag"]+"\n";
+            Console.WriteLine(body);
+            string path = @"versions.yaml";
+            if (!System.IO.File.Exists(path))
+            {
+
+                using (StreamWriter writer = System.IO.File.CreateText(path))
+                {
+                    writer.WriteLine(body);
+                    writer.Close();
+
+                }
+            } else {
+                using (StreamWriter writer = new StreamWriter(path,true))
+                {
+                    writer.WriteLine(body);
+                    writer.Close();
+
+                }
+            }
+
             MailMessage mail = new MailMessage("nighthawks.ztna@gmail.com", "nighthawks.ztna@gmail.com");
             client.DeliveryMethod = SmtpDeliveryMethod.Network;
             mail.Subject = "Webhook-event-file "+ callerFunc;
             // Set the read file as the body of the message
             mail.Body = body;
-            // Send the email
+
+            // Add the file attachment to this email message.
+            Attachment data = new Attachment(path, MediaTypeNames.Application.Octet);
+            ContentDisposition disposition = data.ContentDisposition;
+            disposition.CreationDate = System.IO.File.GetCreationTime(path);
+            disposition.ModificationDate = System.IO.File.GetLastWriteTime(path);
+            disposition.ReadDate = System.IO.File.GetLastAccessTime(path);
+            mail.Attachments.Add(data);
+            
+            // Send the email            
             client.Send(mail);
-           // client.Send("nighthawks.ztna@gmail.com", "nighthawks.ztna@gmail.com", "test", "testbody");
-            Console.WriteLine("Sent");
+            data.Dispose();
+            // client.Send("nighthawks.ztna@gmail.com", "nighthawks.ztna@gmail.com", "test", "testbody");
+            Console.WriteLine("Sent Email succesfully with data : "+body);
         }
 
         #endregion
