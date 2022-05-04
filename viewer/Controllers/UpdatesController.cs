@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using viewer.Hubs;
 using viewer.Models;
 using System.Net.Mail;
+using System.Net.Mime;
 
 namespace viewer.Controllers
 {
