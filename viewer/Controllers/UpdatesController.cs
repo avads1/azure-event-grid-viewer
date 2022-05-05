@@ -5,7 +5,6 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Net;
 using System.Text;
-using System.Net.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.SignalR;
@@ -14,6 +13,8 @@ using viewer.Hubs;
 using viewer.Models;
 using System.Net.Mail;
 using System.Net.Mime;
+using YamlDotNet.Serialization.NamingConventions;
+using YamlDotNet.RepresentationModel;
 
 namespace viewer.Controllers
 {
@@ -86,7 +87,7 @@ namespace viewer.Controllers
                     return await HandleGridEvents(jsonContent);
                 }
 
-                return BadRequest();                
+                return BadRequest();
             }
         }
 
@@ -176,7 +177,8 @@ namespace viewer.Controllers
             return false;
         }
 
-        private static void SendEmail(string jsonData, string callerFunc) {
+        private static void SendEmail(string jsonData, string callerFunc)
+        {
 
             var client = new SmtpClient("smtp.gmail.com", 587)
             {
@@ -184,42 +186,45 @@ namespace viewer.Controllers
                 EnableSsl = true
             };
             var jArrObj = JArray.Parse(jsonData);
-            Dictionary<string, Tuple<string, string>> imageMap = new Dictionary<string, Tuple<string, string>>();
-            imageMap.Add("naas-core", new Tuple<string, string>("TalonImageName", "TalonImageTag"));
-            imageMap.Add("b2e-conftrans", new Tuple<string, string>("B2EImageName", "B2EImageTag"));
-            imageMap.Add("tunnel-server", new Tuple<string, string>("TunnelImageName", "TunnelImageTag"));
+            Dictionary<string, Tuple<string, string>> imageNamesMap = buildImageNamesMap();
             Tuple<string, string> value;
             string reqImageName = (string)jArrObj[0]["data"]["target"]["repository"];
             string reqImageTag = (string)jArrObj[0]["data"]["target"]["tag"];
-            if (!imageMap.TryGetValue(reqImageName, out value))
+            if (!imageNamesMap.TryGetValue(reqImageName, out value))
             {
                 return;
             }
             string body = "";
-            body = body + imageMap[reqImageName].Item1 + ": " + reqImageName + "\n"+imageMap[reqImageName].Item2+": " + reqImageTag + "\n";
-            Console.WriteLine("Request body : \n"+body);
+            body = body + imageNamesMap[reqImageName].Item1 + ": " + reqImageName + "\n" + imageNamesMap[reqImageName].Item2 + ": " + reqImageTag + "\n";
+            Console.WriteLine("Request body : \n" + body);
             string path = @"versions.yaml";
             if (!System.IO.File.Exists(path))
             {
-
-                using (StreamWriter writer = System.IO.File.CreateText(path))
-                {
-                    writer.WriteLine(body);
-                    writer.Close();
-
+                writeToVersionsFile(path, body, false);
+            }
+            else
+            {
+               // var deserializer = new YamlDotNet.Serialization.DeserializerBuilder().WithNamingConvention(PascalCaseNamingConvention.Instance).Build();
+                //var myConfig = deserializer.Deserialize<BuildImageCfgModel>(System.IO.File.ReadAllText(path));
+                String content = System.IO.File.ReadAllText(path);
+                //TextReader reader = System.IO.File.OpenText(path);
+                //var yaml = new YamlStream();
+                //yaml.Load(reader);
+                //var mapping = (YamlMappingNode)yaml.Documents[0].RootNode;
+                string key = imageNamesMap[reqImageName].Item2;
+                
+                if (content.Contains(key)) {
+                    //((YamlScalarNode)mapping.Children[key]).Value = reqImageName;
+                    return;
                 }
-            } else {
-                using (StreamWriter writer = new StreamWriter(path,true))
-                {
-                    writer.WriteLine(body);
-                    writer.Close();
-
+                else {
+                    writeToVersionsFile(path, body, true);
                 }
             }
 
             MailMessage mail = new MailMessage("nighthawks.ztna@gmail.com", "nighthawks.ztna@gmail.com");
             client.DeliveryMethod = SmtpDeliveryMethod.Network;
-            mail.Subject = "Webhook-event-file "+ callerFunc;
+            mail.Subject = "Webhook-event-file " + callerFunc;
             // Set the read file as the body of the message
             mail.Body = body;
 
@@ -230,12 +235,61 @@ namespace viewer.Controllers
             disposition.ModificationDate = System.IO.File.GetLastWriteTime(path);
             disposition.ReadDate = System.IO.File.GetLastAccessTime(path);
             mail.Attachments.Add(data);
-            
+
             // Send the email            
             client.Send(mail);
             data.Dispose();
             // client.Send("nighthawks.ztna@gmail.com", "nighthawks.ztna@gmail.com", "test", "testbody");
-            Console.WriteLine("Sent Email succesfully with data : "+body);
+            Console.WriteLine("Sent Email succesfully with data : " + body);
+        }
+
+        private static void writeToVersionsFile(string path, string body, bool append)
+        {
+            if (append)
+            {
+                using (StreamWriter writer = new StreamWriter(path, append))
+                {
+                    writer.WriteLine(body);
+                    writer.Close();
+
+                }
+            }
+            else
+            {
+                using (StreamWriter writer = System.IO.File.CreateText(path))
+                {
+                    writer.WriteLine(body);
+                    writer.Close();
+                }
+            }
+
+        }
+
+        private static String readVersionsFile(string path)
+        {
+            string content = "";
+            using (StreamReader sr = System.IO.File.OpenText(path))
+            {
+
+                string s = "";
+                while ((s = sr.ReadLine()) != null)
+                {
+                    content = content + s;
+
+                }
+                sr.Close();
+            }
+
+            return content;
+        }
+
+        private static Dictionary<string, Tuple<string, string>> buildImageNamesMap()
+        {
+            Dictionary<string, Tuple<string, string>> imageNamesMap = new Dictionary<string, Tuple<string, string>>();
+            imageNamesMap.Add("naas-core", new Tuple<string, string>("TalonImageName", "TalonImageTag"));
+            imageNamesMap.Add("b2e-conftrans", new Tuple<string, string>("B2EImageName", "B2EImageTag"));
+            imageNamesMap.Add("tunnel-server", new Tuple<string, string>("TunnelImageName", "TunnelImageTag"));
+            return imageNamesMap;
         }
 
         #endregion
